@@ -1,10 +1,12 @@
 package com.example.android.sunshine.app;
 
 
+import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.text.format.Time;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -12,6 +14,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
@@ -25,6 +28,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 
 public  class ForecastFragment extends Fragment{
@@ -80,6 +84,28 @@ public  class ForecastFragment extends Fragment{
         listView.setAdapter(adapter);
 
 
+
+        //if you want to use toast in android
+//        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+//
+//        @Override
+//        public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
+//            String forecast = adapter.getItem(position);
+//            Toast.makeText(getActivity(),forecast,Toast.LENGTH_SHORT).show();
+//            }
+//        });
+
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
+                String forecast = adapter.getItem(position);
+                Intent intent = new Intent(getActivity(), DetailActivity.class);
+                intent.putExtra(Intent.EXTRA_TEXT, forecast);
+                startActivity(intent);
+            }
+
+        });
+
         return rootView;
     }
 
@@ -96,22 +122,41 @@ public  class ForecastFragment extends Fragment{
            }
         }
 
+
+        private String getReadableDateString(long time){
+
+            SimpleDateFormat shortenedDateFormat = new SimpleDateFormat("EEE MMM dd");
+            return shortenedDateFormat.format(time);
+        }
+
         private String[] getWeatherDataFromJson(String JsonStr, int numDays) throws  JSONException{
             double maxTemp = 0;
             double minTemp = 0;
             String description = null;
+            String day;
             String[] resultArray = new String[numDays];
 
+            Time dayTime = new Time();
+            dayTime.setToNow();
+
+            int julianStartDay = Time.getJulianDay(System.currentTimeMillis(), dayTime.gmtoff);
+
+            dayTime = new Time();
 
             JSONObject jsonObject = new JSONObject(JsonStr);
             JSONArray arr = jsonObject.getJSONArray("list");
 
             for(int i=0; i<arr.length(); i++){
 
+                long dateTime;
+                // Cheating to convert this to UTC time, which is what we want anyhow
+                dateTime = dayTime.setJulianDay(julianStartDay+i);
+                day = getReadableDateString(dateTime);
+
                 maxTemp = arr.getJSONObject(i).getJSONObject("temp").getDouble("max");
                 minTemp = arr.getJSONObject(i).getJSONObject("temp").getDouble("min");
                 description = arr.getJSONObject(i).getJSONArray("weather").getJSONObject(0).getString("description");
-                resultArray[i] = Integer.toString(i)+" "+Double.toString(maxTemp) +" " + Double.toString(minTemp) +" "+description ;
+                resultArray[i] = day +" "+Double.toString(maxTemp) +" " + Double.toString(minTemp) +" "+description ;
             }
             return  resultArray;
 
