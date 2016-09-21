@@ -2,9 +2,11 @@ package com.example.android.sunshine.app;
 
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.text.format.Time;
 import android.util.Log;
@@ -60,11 +62,24 @@ public  class ForecastFragment extends Fragment{
         //noinspection SimplifiableIfStatement
 
         if (id == R.id.action_refresh) {
-            new FetchWeatherTask().execute("94108,us");
+            updateWeather();
             return true;
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    private void updateWeather(){
+        FetchWeatherTask fetchWeatherTask = new FetchWeatherTask();
+        SharedPreferences prefs =  PreferenceManager.getDefaultSharedPreferences(getActivity());
+        String location = prefs.getString(getString(R.string.pref_location_key),getString(R.string.pref_location_default));
+        fetchWeatherTask.execute(location);
+    }
+
+    @Override
+    public void onStart(){
+        super.onStart();
+        updateWeather();
     }
 
     @Override
@@ -72,9 +87,6 @@ public  class ForecastFragment extends Fragment{
                              Bundle savedInstanceState){
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
         ArrayList<String> weekForecast = new ArrayList<String>();
-        weekForecast.add("Today-Sunny-88/93");
-        weekForecast.add("Weds-Sunny-88/93");
-        weekForecast.add("Thurs-Sunny-88/93");
 
 
 
@@ -109,6 +121,9 @@ public  class ForecastFragment extends Fragment{
         return rootView;
     }
 
+
+
+
     public class FetchWeatherTask extends AsyncTask<String, Void, String[]>{
         @Override
         protected void onPostExecute(String[] strings) {
@@ -127,6 +142,25 @@ public  class ForecastFragment extends Fragment{
 
             SimpleDateFormat shortenedDateFormat = new SimpleDateFormat("EEE MMM dd");
             return shortenedDateFormat.format(time);
+        }
+
+        private String formatHighLows(double high, double low){
+            SharedPreferences sharedPrefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+            String unitType = sharedPrefs.getString(getString(R.string.pref_units_key), getString(R.string.pref_units_metric));
+
+            if(unitType.equals(getString(R.string.pref_units_imperial))) {
+                high = (high * 1.8) + 32;
+                low = (low * 1.8) + 32;
+            }
+            else if(!unitType.equals(getString(R.string.pref_units_metric))){
+                Log.d("ForecastFragment", "unit type not found:" +unitType);
+
+            }
+
+            long roundedHigh = Math.round(high);
+            long roundedLow = Math.round(low);
+            String highlowStr = roundedHigh + "/" + roundedLow;
+            return highlowStr;
         }
 
         private String[] getWeatherDataFromJson(String JsonStr, int numDays) throws  JSONException{
@@ -155,8 +189,9 @@ public  class ForecastFragment extends Fragment{
 
                 maxTemp = arr.getJSONObject(i).getJSONObject("temp").getDouble("max");
                 minTemp = arr.getJSONObject(i).getJSONObject("temp").getDouble("min");
+
                 description = arr.getJSONObject(i).getJSONArray("weather").getJSONObject(0).getString("description");
-                resultArray[i] = day +" "+Double.toString(maxTemp) +" " + Double.toString(minTemp) +" "+description ;
+                resultArray[i] = day +" "+ formatHighLows(maxTemp,minTemp) +" "+description ;
             }
             return  resultArray;
 

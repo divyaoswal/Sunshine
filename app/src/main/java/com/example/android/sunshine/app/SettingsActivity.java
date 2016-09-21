@@ -19,6 +19,7 @@ public class SettingsActivity extends PreferenceActivity implements Preference.O
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.pref_general);
         bindPreferenceSummaryToValue(findPreference(getString(R.string.pref_location_key)));
+        bindPreferenceSummaryToValue(findPreference(getString(R.string.pref_units_key)));
     }
 
 
@@ -41,7 +42,10 @@ public class SettingsActivity extends PreferenceActivity implements Preference.O
             // For list preferences, look up the correct display value in
             // the preference's 'entries' list.
             ListPreference listPreference = (ListPreference) preference;
-            int index = listPreference.findIndexOfValue(stringValue);
+            int prefindex = listPreference.findIndexOfValue(stringValue);
+            if(prefindex >= 0){
+                preference.setSummary(listPreference.getEntries()[prefindex]);
+            }
 
             // Set the summary to reflect the new value.
             // preference.setSummary(listPreference.getEntry()[index]);
@@ -52,9 +56,5 @@ public class SettingsActivity extends PreferenceActivity implements Preference.O
         return true;
 
     }
-
-
-
-
 
 }
